@@ -2,16 +2,12 @@ package com.example.calculator
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import com.example.calculator.databinding.ActivityMainBinding
 
 private lateinit var binding: ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-/*    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-    }*/
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -28,7 +24,10 @@ class MainActivity : AppCompatActivity() {
         binding.btn8.setOnClickListener { addNum("8") }
         binding.btn9.setOnClickListener { addNum("9") }
 
-        binding.ACBtn.setOnClickListener { binding.mathOperation.text = "0" }
+        binding.ACBtn.setOnClickListener {
+            bMathW("0")
+            bResuW("0")
+        }
 //    binding.lParBtn.setOnClickListener  { calc("lPar") }
 //    binding.rParBtn.setOnClickListener  { calc("rPar") }
         binding.subBtn.setOnClickListener { simMath("/") }
@@ -36,34 +35,34 @@ class MainActivity : AppCompatActivity() {
         binding.plusBtn.setOnClickListener { simMath("+") }
         binding.minusBtn.setOnClickListener { simMath("-") }
         binding.resultBtn.setOnClickListener {
-            var a = binding.mathOperation.text.toString()
-            if (simEqual(a[a.length - 1]) ) { //||
+            if (simEqual(bMathR().last())) {
                 btnBack()
-                a = binding.mathOperation.text.toString()
-                binding.resultText.text = binding.mathOperation.text.toString()
+                binding.resultText.text = bMathR()
                 addStr("=")
-
-            } else if (a[a.length - 1] == '.') {
+            } else if (bMathR().last() == '.') {
                 btnBack()
-                a = binding.mathOperation.text.toString()
                 addStr("=")
-                if (a.all { !simEqual(it) }) result(a)
+            }
+            if (bMathR().any { simEqual(it) }) {
+                if (bMathR().last() == '=') btnBack()
+                bMathW(whySoManyZeros( bMathR()))
+                result(bMathR())
+                addStr("=")
             }
         }
         binding.btnBack.setOnClickListener { btnBack() }
         binding.btnPoint.setOnClickListener {
-            var a = binding.mathOperation.text.toString()
-            if (simEqual(a[a.length - 1])) {
+            if (bMathR().last() == '=') {
+                bMathW("0.")
+            } else if (simEqual(bMathR().last())) {
                 addStr("0.")
-            } else if (a.all { it != '.'}){
+            } else if (bMathR().all { it != '.' }) {
                 addStr(".")
             } else {
-                var b = a.reversed()
-                for (i in 0..a.length - 1) {
-                    if (b[i] == '.') {
+                for (i in 0..bMathR().length - 1) {
+                    if (bMathR().reversed()[i] == '.') {
                         break
-                    }
-                    else if (simEqual(b[i])) {
+                    } else if (simEqual(bMathR().reversed()[i])) {
                         addStr(".")
                         break
                     }
@@ -84,30 +83,81 @@ class MainActivity : AppCompatActivity() {
 fun addStr(str: String) {
     binding.mathOperation.append(str)
 }
-fun addNum(str: String) = if (binding.mathOperation.text.toString().equals("0")) binding.mathOperation.text = str else addStr(str)
 
+fun bMathR(): String = binding.mathOperation.text.toString()
 
+fun bResuR(): String = binding.resultText.text.toString()
 
+fun bMathW(str: String) {
+    //if (str.last() == '0' && str[str.length - 2] == '.')
+        binding.mathOperation.text = str
+}
+
+fun bResuW(str: String) {
+    binding.resultText.text = whySoManyZeros(str)
+}
+
+fun addNum(str: String) {
+    if (bMathR().equals("0") || bMathR().last() == '=') {
+        bMathW(str)
+    } else if (bMathR().last() == '0' && simEqual(bMathR()[bMathR().length - 2])) {
+        btnBack()
+        addStr(str)
+    } else {
+        addStr(str)
+    }
+}
 
 fun simMath(c: String) {
-    var a = binding.mathOperation.text.toString()
-    var aEnd = a[a.length - 1]
-    if (aEnd == '.') btnBack()
-    if (a.all { !simEqual(it) }) addStr(c)
-    else if (simEqual(aEnd)) {
+    var aEnd = bMathR().last()
+    if (aEnd == '=') {
+        bMathW(bResuR())
+        addStr(c)
+    } else if (aEnd == '.') {
+        btnBack()
+    } else if (bMathR().all { !simEqual(it) }) {
+        bMathW(whySoManyZeros(bMathR()) + c)
+    } else if (simEqual(aEnd)) {
         btnBack()
         addStr(c)
     }
 }
 
-fun btnBack() {
-    var a = binding.mathOperation.text.toString()
-    if (a.length>1) binding.mathOperation.text = a.substring(0, a.length - 1) else binding.mathOperation.text = "0"
+fun whySoManyZeros(str: String): String {
+    if (str.last() == '.') {
+        return str.dropLast(1)
+    } else if (!str.equals("0") && str.last() == '0') {
+        return whySoManyZeros(str.dropLast(1))
+    } else {
+        return str
+    }
 }
-fun simEqual(sim: Char):Boolean = sim == '/' || sim == '*' || sim == '-' || sim == '+'
 
-fun result(str:String){
-    var arr = str.split("/".toRegex()).toTypedArray()
-    binding.resultText.text = "$arr[0] И $arr[1]"
+fun btnBack() {
+    if (bMathR().length > 1) bMathW(bMathR().substring(0, bMathR().length - 1)) else bMathW("0")
+}
+
+fun simEqual(sim: Char): Boolean = sim == '/' || sim == '*' || sim == '-' || sim == '+'
+
+fun result(str: String) {
+    //bMathW("")
+    when (str.filter { simEqual(it) }) {
+        "/" -> {
+            var arr = str.split("/").toTypedArray()
+            bResuW((arr[0].toFloat() / arr[1].toFloat()).toString())
+        }
+        "*" -> {
+            var arr = str.split("*").toTypedArray()
+            bResuW((arr[0].toFloat() * arr[1].toFloat()).toString())
+        }
+        "-" -> {
+            var arr = str.split("-").toTypedArray()
+            bResuW((arr[0].toFloat() - arr[1].toFloat()).toString())
+        }
+        "+" -> {
+            var arr = str.split("+").toTypedArray()
+            bResuW((arr[0].toFloat() + arr[1].toFloat()).toString())
+        }
+    }
 }
 
