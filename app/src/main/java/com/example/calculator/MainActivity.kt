@@ -34,7 +34,6 @@ class MainActivity : AppCompatActivity() {
         binding.multBtn.setOnClickListener { simMath("*") }
         binding.plusBtn.setOnClickListener { simMath("+") }
         binding.minusBtn.setOnClickListener { simMath("-") }
-        // TODO: Реализовать постановку минуса при начальном нуле. 
         // TODO: Добавить проверку отрицательного числа перед вычеслениями
         // TODO: Проверить реакцию условий на дополнительный код, для знаков, точки и равно
         // TODO: Реализовать проверку деления на 0
@@ -54,7 +53,7 @@ class MainActivity : AppCompatActivity() {
                     result(bMathR())
                     addStr("=")
                 }
-            } catch (e:Exception){
+            } catch (e: Exception) {
                 Log.d("Ошибка Result", "В разделе кнопки =, произошла ошибка: ${e.message} ")
             }
 
@@ -127,7 +126,7 @@ fun simMath(c: String) {
         addStr(c)
     } else if (aEnd == '.') {
         btnBack()
-    } else if (bMathR().all { !simEqual(it) }) {
+    } else if (!simEqual(bMathR().last())) {
         bMathW(whySoManyZeros(bMathR()) + c)
     } else if (simEqual(aEnd)) {
         btnBack()
@@ -155,17 +154,43 @@ fun btnBack() {
 
 fun simEqual(sim: Char): Boolean = sim == '/' || sim == '*' || sim == '-' || sim == '+'
 
-fun simSplit(str: String): Array<String> = str.split("/", "*", "-", "+").toTypedArray()
+fun giveMeNum(str: String): Array<String> {
+    var arrElement = str.split("/", "*", "-", "+").filter { it.isNotEmpty() }.toTypedArray()
+    if (str[0] == '-') arrElement[0] = "-" + arrElement[0]
+    return arrElement
+}
+
+fun giveMeSimvol(str: String): CharArray {
+    if (str[0] == '-') {
+        return str.drop(1).filter { simEqual(it) }.toCharArray()
+    } else {
+        return str.filter { simEqual(it) }.toCharArray()
+    }
+}
 
 fun result(str: String) {
-    val arr = simSplit(str)
-    when (str.filter { simEqual(it) }) {
-        "/" -> bResuW((arr[0].toFloat() / arr[1].toFloat()).toString())
-        "*" -> bResuW((arr[0].toFloat() * arr[1].toFloat()).toString())
-        "-" -> bResuW((arr[0].toFloat() - arr[1].toFloat()).toString())
-        "+" -> bResuW((arr[0].toFloat() + arr[1].toFloat()).toString())
-
+    val arrNumber = giveMeNum(str)
+    val arrSimvol = giveMeSimvol(str)
+    for(i in 0..arrSimvol.size-1){
+        bResuW(MathEqually(arrNumber[i]))
     }
+        /*when (str.filter { simEqual(it) }) {
+            "/" -> bResuW(MathEqually())
+            "*" -> bResuW(MathEqually())
+            "-" -> bResuW(MathEqually())
+            "+" -> bResuW(MathEqually())
+            else -> bResuW("Ну хз")*/
 
+
+}
+
+fun MathEqually(numberOne: String, numberTwo: String, sign: String): String {
+    when (sign) {
+        "/" -> return (numberOne.toFloat() / numberTwo.toFloat()).toString()
+        "*" -> return (numberOne.toFloat() * numberTwo.toFloat()).toString()
+        "-" -> return (numberOne.toFloat() - numberTwo.toFloat()).toString()
+        "+" -> return (numberOne.toFloat() + numberTwo.toFloat()).toString()
+        else -> return ("Ну хз")
+    }
 }
 
