@@ -34,23 +34,33 @@ class MainActivity : AppCompatActivity() {
         binding.multBtn.setOnClickListener { simMath("*") }
         binding.plusBtn.setOnClickListener { simMath("+") }
         binding.minusBtn.setOnClickListener { simMath("-") }
+        // TODO: Реализовать постановку минуса при начальном нуле. 
+        // TODO: Добавить проверку отрицательного числа перед вычеслениями
+        // TODO: Проверить реакцию условий на дополнительный код, для знаков, точки и равно
+        // TODO: Реализовать проверку деления на 0
         binding.resultBtn.setOnClickListener {
-            if (simEqual(bMathR().last())) {
-                btnBack()
-                binding.resultText.text = bMathR()
-                addStr("=")
-            } else if (bMathR().last() == '.') {
-                btnBack()
-                addStr("=")
+            try {
+                if (simEqual(bMathR().last())) {
+                    btnBack()
+                    binding.resultText.text = bMathR()
+                    addStr("=")
+                } else if (bMathR().last() == '.') {
+                    btnBack()
+                    addStr("=")
+                }
+                if (bMathR().any { simEqual(it) }) {
+                    if (bMathR().last() == '=') btnBack()
+                    bMathW(whySoManyZeros(bMathR()))
+                    result(bMathR())
+                    addStr("=")
+                }
+            } catch (e:Exception){
+                Log.d("Ошибка Result", "В разделе кнопки =, произошла ошибка: ${e.message} ")
             }
-            if (bMathR().any { simEqual(it) }) {
-                if (bMathR().last() == '=') btnBack()
-                bMathW(whySoManyZeros( bMathR()))
-                result(bMathR())
-                addStr("=")
-            }
+
         }
         binding.btnBack.setOnClickListener { btnBack() }
+        // TODO: Добавить удаение при долгом нажатие на кнопку Back
         binding.btnPoint.setOnClickListener {
             if (bMathR().last() == '=') {
                 bMathW("0.")
@@ -90,7 +100,7 @@ fun bResuR(): String = binding.resultText.text.toString()
 
 fun bMathW(str: String) {
     //if (str.last() == '0' && str[str.length - 2] == '.')
-        binding.mathOperation.text = str
+    binding.mathOperation.text = str
 }
 
 fun bResuW(str: String) {
@@ -109,8 +119,10 @@ fun addNum(str: String) {
 }
 
 fun simMath(c: String) {
-    var aEnd = bMathR().last()
-    if (aEnd == '=') {
+    val aEnd = bMathR().last()
+    if (c == "-" && bMathR() == "0") {
+        bMathW("-0")
+    } else if (aEnd == '=') {
         bMathW(bResuR())
         addStr(c)
     } else if (aEnd == '.') {
@@ -124,10 +136,14 @@ fun simMath(c: String) {
 }
 
 fun whySoManyZeros(str: String): String {
-    if (str.last() == '.') {
-        return str.dropLast(1)
-    } else if (!str.equals("0") && str.last() == '0') {
-        return whySoManyZeros(str.dropLast(1))
+    if (str.any { it == '.' }) {
+        if (str.last() == '.') {
+            return str.dropLast(1)
+        } else if (!str.equals("0") && str.last() == '0') {
+            return whySoManyZeros(str.dropLast(1))
+        } else {
+            return str
+        }
     } else {
         return str
     }
@@ -139,25 +155,17 @@ fun btnBack() {
 
 fun simEqual(sim: Char): Boolean = sim == '/' || sim == '*' || sim == '-' || sim == '+'
 
+fun simSplit(str: String): Array<String> = str.split("/", "*", "-", "+").toTypedArray()
+
 fun result(str: String) {
-    //bMathW("")
+    val arr = simSplit(str)
     when (str.filter { simEqual(it) }) {
-        "/" -> {
-            var arr = str.split("/").toTypedArray()
-            bResuW((arr[0].toFloat() / arr[1].toFloat()).toString())
-        }
-        "*" -> {
-            var arr = str.split("*").toTypedArray()
-            bResuW((arr[0].toFloat() * arr[1].toFloat()).toString())
-        }
-        "-" -> {
-            var arr = str.split("-").toTypedArray()
-            bResuW((arr[0].toFloat() - arr[1].toFloat()).toString())
-        }
-        "+" -> {
-            var arr = str.split("+").toTypedArray()
-            bResuW((arr[0].toFloat() + arr[1].toFloat()).toString())
-        }
+        "/" -> bResuW((arr[0].toFloat() / arr[1].toFloat()).toString())
+        "*" -> bResuW((arr[0].toFloat() * arr[1].toFloat()).toString())
+        "-" -> bResuW((arr[0].toFloat() - arr[1].toFloat()).toString())
+        "+" -> bResuW((arr[0].toFloat() + arr[1].toFloat()).toString())
+
     }
+
 }
 
