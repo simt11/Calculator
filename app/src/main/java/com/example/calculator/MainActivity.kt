@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
                 if (bMathR().any { simEqual(it) }) {
                     if (bMathR().last() == '=') btnBack()
                     bMathW(whySoManyZeros(bMathR()))
-                    result(bMathR())
+                    resultMinusPlus(bMathR())
                     addStr("=")
                 }
             } catch (e: Exception) {
@@ -98,7 +98,6 @@ fun bMathR(): String = binding.mathOperation.text.toString()
 fun bResuR(): String = binding.resultText.text.toString()
 
 fun bMathW(str: String) {
-    //if (str.last() == '0' && str[str.length - 2] == '.')
     binding.mathOperation.text = str
 }
 
@@ -154,43 +153,87 @@ fun btnBack() {
 
 fun simEqual(sim: Char): Boolean = sim == '/' || sim == '*' || sim == '-' || sim == '+'
 
-fun giveMeNum(str: String): Array<String> {
-    var arrElement = str.split("/", "*", "-", "+").filter { it.isNotEmpty() }.toTypedArray()
+fun giveMeNumMinusPlus(str: String): Array<String> {
+    var arrElement = str.split("-", "+").filter { it.isNotEmpty() }.toTypedArray()
     if (str[0] == '-') arrElement[0] = "-" + arrElement[0]
     return arrElement
 }
 
-fun giveMeSimvol(str: String): CharArray {
+fun giveMeNumMulSub(str: String): Array<String> {
+    var arrElement = str.split("/", "*").filter { it.isNotEmpty() }.toTypedArray()
+    return arrElement
+}
+
+fun giveMeNumParenthesis(str: String): Array<String> {
+    var arrElement = str.split("(", ")").filter { it.isNotEmpty() }.toTypedArray()
+    return arrElement
+}
+
+fun giveMeSimMulSub(str: String): CharArray {
     if (str[0] == '-') {
-        return str.drop(1).filter { simEqual(it) }.toCharArray()
+        return str.drop(1).filter { it == '/' || it == '*' }.toCharArray()
     } else {
-        return str.filter { simEqual(it) }.toCharArray()
+        return str.filter { it == '/' || it == '*' }.toCharArray()
     }
 }
 
-fun result(str: String) {
-    val arrNumber = giveMeNum(str)
-    val arrSimvol = giveMeSimvol(str)
-    for(i in 0..arrSimvol.size-1){
-        bResuW(MathEqually(arrNumber[i]))
+fun giveMeSimMinusPlus(str: String): CharArray {
+    if (str[0] == '-') {
+        return str.drop(1).filter { it == '-' || it == '+' }.toCharArray()
+    } else {
+        return str.filter { it == '-' || it == '+' }.toCharArray()
     }
-        /*when (str.filter { simEqual(it) }) {
-            "/" -> bResuW(MathEqually())
-            "*" -> bResuW(MathEqually())
-            "-" -> bResuW(MathEqually())
-            "+" -> bResuW(MathEqually())
-            else -> bResuW("Ну хз")*/
-
-
 }
 
-fun MathEqually(numberOne: String, numberTwo: String, sign: String): String {
+fun parenthesisSplit(str: String) {
+    val arrNumber = giveMeNumParenthesis(str)
+    val arrSimvol = giveMeSimMinusPlus(str)
+    var value = arrNumber[0]
+    for (i in 1..arrSimvol.size) {
+        if (arrNumber[i].any { it == '/' || it == '*' }) {
+            arrNumber[i] = resultMulSub(arrNumber[i])
+        }
+        value = MathEqually(value, arrNumber[i], arrSimvol[i - 1])
+    }
+    bResuW(value)
+}
+
+fun resultMinusPlus(str: String) {
+    val arrNumber = giveMeNumMinusPlus(str)
+    val arrSimvol = giveMeSimMinusPlus(str)
+    var value = arrNumber[0]
+    if (arrNumber.size == 1 && value.any { it == '/' || it == '*' }) {
+        value = resultMulSub(value)
+    } else {
+        for (i in 1..arrSimvol.size) {
+            if (arrNumber[i].any { it == '/' || it == '*' }) {
+                arrNumber[i] = resultMulSub(arrNumber[i])
+            }
+            value = MathEqually(value, arrNumber[i], arrSimvol[i - 1])
+        }
+    }
+    bResuW(value)
+}
+
+fun resultMulSub(str: String): String {
+    val arrNumber = giveMeNumMulSub(str)
+    val arrSimvol = giveMeSimMulSub(str)
+    var value = arrNumber[0]
+    for (i in 1..arrSimvol.size) {
+        value = MathEqually(value, arrNumber[i], arrSimvol[i - 1])
+    }
+    return value
+}
+
+fun MathEqually(numberOne: String, numberTwo: String, sign: Char): String {
     when (sign) {
-        "/" -> return (numberOne.toFloat() / numberTwo.toFloat()).toString()
-        "*" -> return (numberOne.toFloat() * numberTwo.toFloat()).toString()
-        "-" -> return (numberOne.toFloat() - numberTwo.toFloat()).toString()
-        "+" -> return (numberOne.toFloat() + numberTwo.toFloat()).toString()
+        '/' -> return (numberOne.toDouble() / numberTwo.toDouble()).toString()
+        '*' -> return (numberOne.toDouble() * numberTwo.toDouble()).toString()
+        '-' -> return (numberOne.toDouble() - numberTwo.toDouble()).toString()
+        '+' -> return (numberOne.toDouble() + numberTwo.toDouble()).toString()
         else -> return ("Ну хз")
     }
 }
+
+
 
