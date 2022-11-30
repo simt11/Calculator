@@ -37,57 +37,49 @@ class MainActivity : AppCompatActivity() {
         // TODO: Добавить проверку отрицательного числа перед вычеслениями
         // TODO: Проверить реакцию условий на дополнительный код, для знаков, точки и равно
         // TODO: Реализовать проверку деления на 0
-        binding.resultBtn.setOnClickListener {
-            try {
-                if (simEqual(bMathR().last())) {
-                    btnBack()
-                    binding.resultText.text = bMathR()
-                    addStr("=")
-                } else if (bMathR().last() == '.') {
-                    btnBack()
-                    addStr("=")
-                }
-                if (bMathR().any { simEqual(it) }) {
-                    if (bMathR().last() == '=') btnBack()
-                    bMathW(whySoManyZeros(bMathR()))
-                    resultMinusPlus(bMathR())
-                    addStr("=")
-                }
-            } catch (e: Exception) {
-                Log.d("Ошибка Result", "В разделе кнопки =, произошла ошибка: ${e.message} ")
-            }
-
-        }
-        binding.btnBack.setOnClickListener { btnBack() }
-        // TODO: Добавить удаение при долгом нажатие на кнопку Back
+        binding.resultBtn.setOnClickListener { btnResult() }
+        binding.btnDel.setOnClickListener { btnDel() }
+        // TODO: Добавить удаление при долгом нажатие на кнопку Back
         binding.btnPoint.setOnClickListener {
-            if (bMathR().last() == '=') {
-                bMathW("0.")
-            } else if (simEqual(bMathR().last())) {
-                addStr("0.")
-            } else if (bMathR().all { it != '.' }) {
-                addStr(".")
-            } else {
-                for (i in 0..bMathR().length - 1) {
-                    if (bMathR().reversed()[i] == '.') {
-                        break
-                    } else if (simEqual(bMathR().reversed()[i])) {
-                        addStr(".")
-                        break
+            when {
+                bMathR().last().equals('=') -> bMathW("0.")
+                isSignEqual(bMathR().last()) -> addStr("0.")
+                bMathR().all { it != '.' } -> addStr(".")
+                else -> {
+                    for (i in bMathR().length - 1 downTo 0) {
+                        if (bMathR()[i] == '.') {
+                            break
+                        } else if (isSignEqual(bMathR()[i])) {
+                            addStr(".")
+                            break
+                        }
                     }
                 }
             }
         }
     }
 }
-/*
-* Нет точки
-* Есть одна точка               ---------
-* Есть одна точка и знак и все  ---------
-* Есть одна точка и знак
-* Есть 2 точки и знак
-*
-* */
+
+fun btnResult() {
+    try {
+        if (isSignEqual(bMathR().last())) {
+            btnDel()
+            binding.resultText.text = bMathR()
+            addStr("=")
+        } else if (bMathR().last().equals('.')) {
+            btnDel()
+            addStr("=")
+        }
+        if (bMathR().any { isSignEqual(it) }) {
+            if (bMathR().last().equals('=')) btnDel()
+            bMathW(delLastZeros(bMathR()))
+            resultMinusPlus(bMathR())
+            addStr("=")
+        }
+    } catch (e: Exception) {
+        Log.d("Ошибка Result", "В разделе кнопки =, произошла ошибка: ${e.message} ")
+    }
+}
 
 fun addStr(str: String) {
     binding.mathOperation.append(str)
@@ -102,14 +94,14 @@ fun bMathW(str: String) {
 }
 
 fun bResuW(str: String) {
-    binding.resultText.text = whySoManyZeros(str)
+    binding.resultText.text = delLastZeros(str)
 }
 
 fun addNum(str: String) {
-    if (bMathR().equals("0") || bMathR().last() == '=') {
+    if (bMathR().equals("0") || bMathR().last().equals('=')) {
         bMathW(str)
-    } else if (bMathR().last() == '0' && simEqual(bMathR()[bMathR().length - 2])) {
-        btnBack()
+    } else if (bMathR().last().equals('0') && isSignEqual(bMathR()[bMathR().length - 2])) {
+        btnDel()
         addStr(str)
     } else {
         addStr(str)
@@ -124,21 +116,21 @@ fun simMath(c: String) {
         bMathW(bResuR())
         addStr(c)
     } else if (aEnd == '.') {
-        btnBack()
-    } else if (!simEqual(bMathR().last())) {
-        bMathW(whySoManyZeros(bMathR()) + c)
-    } else if (simEqual(aEnd)) {
-        btnBack()
+        btnDel()
+    } else if (!isSignEqual(bMathR().last())) {
+        bMathW(delLastZeros(bMathR()) + c)
+    } else if (isSignEqual(aEnd)) {
+        btnDel()
         addStr(c)
     }
 }
 
-fun whySoManyZeros(str: String): String {
+fun delLastZeros(str: String): String {
     if (str.any { it == '.' }) {
-        if (str.last() == '.') {
+        if (str.last().equals('.')) {
             return str.dropLast(1)
-        } else if (!str.equals("0") && str.last() == '0') {
-            return whySoManyZeros(str.dropLast(1))
+        } else if (!str.equals("0") && str.last().equals('0')) {
+            return delLastZeros(str.dropLast(1))
         } else {
             return str
         }
@@ -147,11 +139,11 @@ fun whySoManyZeros(str: String): String {
     }
 }
 
-fun btnBack() {
+fun btnDel() {
     if (bMathR().length > 1) bMathW(bMathR().substring(0, bMathR().length - 1)) else bMathW("0")
 }
 
-fun simEqual(sim: Char): Boolean = sim == '/' || sim == '*' || sim == '-' || sim == '+'
+fun isSignEqual(sim: Char): Boolean = sim == '/' || sim == '*' || sim == '-' || sim == '+'
 
 fun giveMeNumMinusPlus(str: String): Array<String> {
     var arrElement = str.split("-", "+").filter { it.isNotEmpty() }.toTypedArray()
