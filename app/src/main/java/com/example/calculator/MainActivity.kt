@@ -7,6 +7,8 @@ import com.example.calculator.databinding.ActivityMainBinding
 
 private lateinit var binding: ActivityMainBinding
 
+
+
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,16 +30,17 @@ class MainActivity : AppCompatActivity() {
             setMathText("0")
             setResultText("0")
         }
-//    binding.lParBtn.setOnClickListener  { calc("lPar") }
-//    binding.rParBtn.setOnClickListener  { calc("rPar") }
-        binding.subBtn.setOnClickListener { createSign("/") }
-        binding.multBtn.setOnClickListener { createSign("*") }
-        binding.plusBtn.setOnClickListener { createSign("+") }
+//        binding.lParBtn.setOnClickListener  { createSign("(") }
+//        binding.rParBtn.setOnClickListener  { createSign(")") }
+        binding.subBtn.setOnClickListener   { createSign("/") }
+        binding.multBtn.setOnClickListener  { createSign("*") }
+        binding.plusBtn.setOnClickListener  { createSign("+") }
         binding.minusBtn.setOnClickListener { createSign("-") }
         // TODO: Реализовать проверку деления на 0
         binding.resultBtn.setOnClickListener { btnResult() }
-        binding.btnDel.setOnClickListener { btnDel() }
+        binding.btnDel.setOnClickListener   { btnDel() }
         // TODO: Добавить удаление при долгом нажатие на кнопку Back
+
         binding.btnPoint.setOnClickListener {
             when {
                 getMathText().last().equals('=') -> setMathText("0.")
@@ -62,7 +65,7 @@ fun btnResult() {
     try {
         if (isSignEqual(getMathText().last())) {
             btnDel()
-            binding.resultText.text = getMathText()
+            setResultText(getMathText())
             addStr("=")
         } else if (getMathText().last().equals('.')) {
             btnDel()
@@ -71,7 +74,7 @@ fun btnResult() {
         if (getMathText().any { isSignEqual(it) }) {
             if (getMathText().last().equals('=')) btnDel()
             setMathText(delLastZeros(getMathText()))
-            resultMinusPlus(getMathText())
+            setResultText(resultMath(getMathText(), '-', '+'))
             addStr("=")
         }
     } catch (e: Exception) {
@@ -98,7 +101,8 @@ fun setResultText(str: String) {
 fun addNum(str: String) {
     when {
         getMathText().equals("0") || getMathText().last().equals('=') -> setMathText(str)
-        getMathText().last().equals('0') && isSignEqual(getMathText()[getMathText().length - 2]) -> {
+        getMathText().last()
+            .equals('0') && isSignEqual(getMathText()[getMathText().length - 2]) -> {
             btnDel()
             addStr(str)
         }
@@ -106,12 +110,9 @@ fun addNum(str: String) {
     }
 }
 
-
-
 fun createSign(c: String) {
     val aEnd = getMathText().last()
     when {
-        c.equals("-") && getMathText().equals("0") -> setMathText("-0")
         aEnd.equals('=') -> {
             setMathText(getResultText())
             addStr(c)
@@ -141,76 +142,40 @@ fun delLastZeros(str: String): String {
 fun btnDel() {
     if (getMathText().length > 1) setMathText(
         getMathText().substring(
-            0,
-            getMathText().length - 1
+            0, getMathText().length - 1
         )
     ) else setMathText("0")
 }
 
-fun isSignEqual(sim: Char): Boolean =
-    sim.equals('/') || sim.equals('*') || sim.equals('-') || sim.equals('+')
+val signMap = setOf('/', '*', '-', '+')
 
-fun getNumMinusPlus(str: String): Array<String> {
-    var arrElement = str.split("-", "+").filter { it.isNotEmpty() }.toTypedArray()
-    if (str.first().equals('-')) arrElement[0] = "-" + arrElement[0]
-    return arrElement
-}
+val signMulSubMap = setOf('/', '*')
 
-fun getNumMulSub(str: String): Array<String> =
-    str.split("/", "*").filter { it.isNotEmpty() }.toTypedArray()
+val signMinusPlusMap = setOf('-', '+')
 
-fun getNumParenthesis(str: String): Array<String> =
-    str.split("(", ")").filter { it.isNotEmpty() }.toTypedArray()
+fun isSignEqual(sign: Char): Boolean = sign in signMap
 
-fun getSimMulSub(str: String): CharArray {
+fun getNumberArray(str: String, signOne: Char, signTwo: Char): Array<String> =
+    str.split(signOne, signTwo).filter { it.isNotEmpty() }.toTypedArray()
+
+fun getSign(str: String, signOne: Char, signTwo: Char): String {
     return when {
-        str.first().equals('-') -> str.drop(1).filter { it == '/' || it == '*' }.toCharArray()
-        else -> str.filter { it == '/' || it == '*' }.toCharArray()
+        str.first().equals('-') -> str.drop(1).filter { it.equals(signOne) || it == signTwo }
+        else -> str.filter { it.equals(signOne) || it == signTwo }
     }
 }
 
-fun getSimMinusPlus(str: String): CharArray {
-    return when {
-        str.first().equals('-') -> str.drop(1).filter { it.equals('-') || it == '+' }.toCharArray()
-        else -> str.filter { it.equals('-') || it == '+' }.toCharArray()
-    }
-}
-
-fun parenthesisSplit(str: String) {
-    val arrNumber = getNumParenthesis(str)
-    val arrSimvol = getSimMinusPlus(str)
+fun resultMath(str: String, signOne: Char, signTwo: Char): String {
+    val arrNumber = getNumberArray(str, signOne, signTwo)
+    if (str.first().equals('-')) arrNumber[0] = "-" + arrNumber[0]
+    val arrSimvol = getSign(str, signOne, signTwo)
     var value = arrNumber.first()
-    for (i in 1..arrSimvol.size) {
-        if (arrNumber[i].any { it == '/' || it == '*' }) {
-            arrNumber[i] = resultMulSub(arrNumber[i])
+//    if (value.any { it in signMinusPlusMap }) value = resultMath(value, '-', '+')
+    if (value.any { it in signMulSubMap }) value = resultMath(value, '/', '*')
+    for (i in 1..arrSimvol.length) {
+        if (arrNumber[i].any { it in signMulSubMap }) {
+            arrNumber[i] = resultMath(arrNumber[i], '/', '*')
         }
-        value = mathEqually(value, arrNumber[i], arrSimvol[i - 1])
-    }
-    setResultText(value)
-}
-
-fun resultMinusPlus(str: String) {
-    val arrNumber = getNumMinusPlus(str)
-    val arrSimvol = getSimMinusPlus(str)
-    var value = arrNumber.first()
-    if (arrNumber.size == 1 && value.any { it == '/' || it == '*' }) {
-        value = resultMulSub(value)
-    } else {
-        for (i in 1..arrSimvol.size) {
-            if (arrNumber[i].any { it == '/' || it == '*' }) {
-                arrNumber[i] = resultMulSub(arrNumber[i])
-            }
-            value = mathEqually(value, arrNumber[i], arrSimvol[i - 1])
-        }
-    }
-    setResultText(value)
-}
-
-fun resultMulSub(str: String): String {
-    val arrNumber = getNumMulSub(str)
-    val arrSimvol = getSimMulSub(str)
-    var value = arrNumber.first()
-    for (i in 1..arrSimvol.size) {
         value = mathEqually(value, arrNumber[i], arrSimvol[i - 1])
     }
     return value
@@ -225,6 +190,3 @@ fun mathEqually(numberOne: String, numberTwo: String, sign: Char): String {
         else -> ("Ну хз")
     }
 }
-
-
-
