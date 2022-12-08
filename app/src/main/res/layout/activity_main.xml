@@ -170,9 +170,9 @@
                 android:text="0"
                 />
             <TextView
-                android:id="@+id/btn_Del"
+                android:id="@+id/btn_Back"
                 style="@style/ActionButton"
-                android:text="Del"
+                android:text="Back"
                 />
             <TextView
                 android:id="@+id/result_btn"
