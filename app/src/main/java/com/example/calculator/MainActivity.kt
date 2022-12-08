@@ -169,8 +169,6 @@ val signMap = setOf('/', '*', '-', '+')
 
 val signMulSubMap = setOf('/', '*')
 
-val signMinusPlusMap = setOf('-', '+')
-
 private fun isSignEqual(sign: Char): Boolean = sign in signMap
 
 private fun getNumberArray(str: String, signOne: Char, signTwo: Char): Array<String> =
