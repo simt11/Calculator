@@ -4,7 +4,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import com.example.calculator.databinding.ActivityMainBinding
-import kotlin.system.measureTimeMillis
 
 private lateinit var binding: ActivityMainBinding
 
@@ -35,30 +34,21 @@ class MainActivity : AppCompatActivity() {
         binding.multBtn.setOnClickListener { createSign("*") }
         binding.plusBtn.setOnClickListener { createSign("+") }
         binding.minusBtn.setOnClickListener { createSign("-") }
-        binding.resultBtn.setOnClickListener { btnResult() }
-        binding.btnDel.setOnClickListener { btnDel() }
-        // TODO: Добавить удаление при долгом нажатие на кнопку Back
+        binding.resultBtn.setOnClickListener { createResult() }
+        binding.btnDel.setOnClickListener { delLastChar() }
 
-        binding.btnPoint.setOnClickListener { buttonPoint() }
+        binding.btnPoint.setOnClickListener { setPoint() }
     }
 }
 
-private fun buttonPoint() {
+private fun setPoint() {
     val text = getMathText()
+    val charInText: Char? = text.lastOrNull { it.equals('.') || isSignEqual(it) }
     when {
         text.last().equals('=') -> setMathText("0.")
         isSignEqual(text.last()) -> addStr("0.")
         text.all { !it.equals('.') } -> addStr(".")
-        else -> {
-            for (i in text.length - 1 downTo 0) {
-                if (text[i].equals('.')) {
-                    break
-                } else if (isSignEqual(text[i])) {
-                    addStr(".")
-                    break
-                }
-            }
-        }
+        else -> if (isSignEqual(charInText)) addStr(".")
     }
 }
 
@@ -70,18 +60,14 @@ private fun isDivisionZero(str: String): Boolean {
     }
 }
 
-private fun btnResult() {
+private fun createResult() {
     var text = delLastZeros(getMathText())
-    when {
-        text.last() == '=' -> false
-        else -> try {
-            if (isSignEqual(text.last())) {
+    val aEnd = text.last()
+    try {
+        if (aEnd != '=') {
+            if (isSignEqual(aEnd) || aEnd.equals('.')) {
                 text = text.dropLast(1)
-                btnDel()
-                addStr("=")
-            } else if (text.last().equals('.')) {
-                text = text.dropLast(1)
-                btnDel()
+                delLastChar()
                 addStr("=")
             }
             when {
@@ -91,9 +77,9 @@ private fun btnResult() {
                     setResultText(resultMath(text, '-', '+'))
                 }
             }
-        } catch (e: Exception) {
-            Log.d("Ошибка Result", "В разделе кнопки =, произошла ошибка: ${e.message} ")
         }
+    } catch (e: Exception) {
+        Log.d("Ошибка Result", "В разделе кнопки =, произошла ошибка: ${e.message} ")
     }
 }
 
@@ -118,7 +104,7 @@ private fun addNum(str: String) {
     when {
         text.equals("0") || text.last().equals('=') -> setMathText(str)
         text.last().equals('0') && isSignEqual(text[text.length - 2]) -> {
-            btnDel()
+            delLastChar()
             addStr(str)
         }
         else -> addStr(str)
@@ -134,10 +120,9 @@ private fun createSign(c: String) {
             setMathText(getResultText())
             addStr(c)
         }
-        aEnd.equals('.') -> btnDel()
         !isSignEqual(aEnd) -> setMathText(delLastZeros(text) + c)
-        isSignEqual(aEnd) -> {
-            btnDel()
+        isSignEqual(aEnd) || aEnd.equals('.') -> {
+            delLastChar()
             addStr(c)
         }
     }
@@ -145,53 +130,42 @@ private fun createSign(c: String) {
 
 private fun delLastZeros(str: String): String {
     return when {
-        str.any { it.equals('.') } -> {
-            when {
-                str.last().equals('.') -> str.dropLast(1)
-                !str.equals("0") && str.last().equals('0') -> delLastZeros(str.dropLast(1))
-                else -> str
-            }
-        }
+        str.last().equals('.') -> str.dropLast(1)
+        str.any { it.equals('.') } && str.last().equals('0') -> delLastZeros(str.dropLast(1))
         else -> str
     }
 }
 
-private fun btnDel() {
+private fun delLastChar() {
     val text = getMathText()
-    if (text.length > 1) setMathText(
-        text.substring(
-            0, text.length - 1
-        )
-    ) else setMathText("0")
+    setMathText(if (text.length > 1) text.dropLast(1) else "0")
 }
 
 val signMap = setOf('/', '*', '-', '+')
 
 val signMulSubMap = setOf('/', '*')
 
-private fun isSignEqual(sign: Char): Boolean = sign in signMap
+private fun isSignEqual(sign: Char?): Boolean = sign in signMap
 
 private fun getNumberArray(str: String, signOne: Char, signTwo: Char): Array<String> =
     str.split(signOne, signTwo).filter { it.isNotEmpty() }.toTypedArray()
 
 private fun getSign(str: String, signOne: Char, signTwo: Char): String {
-    return when {
-        str.first().equals('-') -> str.drop(1).filter { it.equals(signOne) || it == signTwo }
-        else -> str.filter { it.equals(signOne) || it == signTwo }
-    }
+    var text = str.filter { it.equals(signOne) || it == signTwo }
+    return if (str[0].equals('-')) text.drop(1) else text
 }
 
 private fun resultMath(str: String, signOne: Char, signTwo: Char): String {
     val arrNumber = getNumberArray(str, signOne, signTwo)
     if (str.first().equals('-')) arrNumber[0] = "-" + arrNumber[0]
-    val arrSimvol = getSign(str, signOne, signTwo)
+    val arrSign = getSign(str, signOne, signTwo)
     var value = arrNumber.first()
     if (value.any { it in signMulSubMap }) value = resultMath(value, '/', '*')
-    for (i in 1..arrSimvol.length) {
+    for (i in 1..arrSign.length) {
         if (arrNumber[i].any { it in signMulSubMap }) {
             arrNumber[i] = resultMath(arrNumber[i], '/', '*')
         }
-        value = mathEqually(value, arrNumber[i], arrSimvol[i - 1])
+        value = mathEqually(value, arrNumber[i], arrSign[i - 1])
     }
     return value
 }
